@@ -1,130 +1,81 @@
 #include "binary_trees.h"
-#define N_LEFT (&((*node)->left))
-#define N_RIGHT (&((*node)->right))
-#define NODE (*node)
-#define SEARCH bst_search
-#define LEFT tree->left
-#define RIGHT tree->right
 
+bst_t *inorder_successor(bst_t *root);
 
 /**
- * min - min
- * @root: root
- * Return: min
+ * inorder_successor - Returns the minimum value of a binary search tree.
+ * @root: A pointer to the root node of the BST to search.
+ *
+ * Return: The minimum value in @tree.
  */
-bst_t *min(bst_t *root)
+bst_t *inorder_successor(bst_t *root)
 {
-	while (root->right)
-		root = root->right;
+	while (root->left != NULL)
+		root = root->left;
 	return (root);
 }
 
 /**
- * successor - successor
- * @root: root
- * Return: successor
- */
-bst_t *successor(bst_t *root)
-{
-	bst_t *temp = NULL;
-
-	if (root->right)
-		return (min(root->right));
-	temp = root->parent;
-	while (temp && root == temp->right)
-	{
-		root = temp;
-		temp = temp->parent;
-	}
-	return (temp);
-}
-
-/**
- * shift_nodes - shifts node
- * @tree: tree
- * @node: node
- * @new: new
- */
-void shift_nodes(bst_t **tree, bst_t **node, bst_t **new)
-{
-	bst_t *_node = *node, *_new = *new;
-
-	if (!_node->parent)
-		*tree = _new;
-	else if (_node == _node->parent->left)
-		_node->parent->left = _new;
-	else
-		_node->parent->right = _new;
-	if (_new)
-		_new->parent = _node->parent;
-}
-
-/**
- * delete_node - deletes a node from a tree
- * @tree: tree from which to delete
- * @node: node to delete
- * Return: deleted node
- */
-bst_t *delete_node(bst_t **tree, bst_t **node)
-{
-	bst_t *temp;
-
-	if (*(N_LEFT))
-	{
-		shift_nodes(tree, node, N_RIGHT);
-		free(*node);
-		return (*N_RIGHT);
-	}
-	else if (*(N_RIGHT))
-	{
-		shift_nodes(tree, node, N_LEFT);
-		free(*node);
-		return (*N_LEFT);
-	}
-	else
-	{
-		temp = successor(NODE);
-		if (temp->parent != NODE)
-		{
-			shift_nodes(tree, &temp, N_RIGHT);
-			temp->right = *(N_RIGHT);
-			if (temp->right)
-				temp->right->parent = temp;
-		}
-		temp->left = *(N_LEFT);
-		temp->left->parent = temp;
-		shift_nodes(tree, node, &temp);
-		free(*node);
-	}
-
-	return (temp);
-}
-
-/**
- * bst_remove - removes node with a value
- * @root: root of tree
- * @value: value to remove
- * Return: removed node
+ * bst_remove - Removes a node from a binary search tree.
+ * @root: A pointer to the root node of the BST to remove a node from.
+ * @value: The value to remove in the BST.
+ *
+ * Return: A pointer to the new root node after deletion.
+ *
+ * Description: If the node to be deleted has two children, it
+ *              is replaced with its first in-order successor.
  */
 bst_t *bst_remove(bst_t *root, int value)
 {
-	bst_t *node = NULL;
-	bst_t *tree = root;
-	bst_t *temp = NULL;
+	bst_t *node = root, *parent = NULL, *successor = NULL;
 
-	for (; tree;)
+	while (node != NULL)
 	{
-		temp = tree;
-		if (value < tree->n)
-			tree = tree->left;
-		else if (value > tree->n)
-			tree = tree->right;
+		if (node->n == value)
+		{
+			/* No children or right-child only */
+			if (node->left == NULL)
+			{
+				if (parent != NULL && parent->left == node)
+					parent->left = node->right;
+				else if (parent != NULL)
+					parent->right = node->right;
+				if (node->right != NULL)
+					node->right->parent = parent;
+				free(node);
+				return (parent == NULL ? node->right : root);
+			}
+
+			/* Left-child only */
+			if (node->right == NULL)
+			{
+				if (parent != NULL && parent->left == node)
+					parent->left = node->left;
+				else if (parent != NULL)
+					parent->right = node->left;
+				node->left->parent = parent;
+				free(node);
+				return (parent == NULL ? node->left : root);
+			}
+
+			/* Two children */
+			successor = inorder_successor(node->right);
+			node->n = successor->n;
+			value = successor->n;
+			parent = node;
+			node = node->right;
+		}
+		else if (node->n > value)
+		{
+			parent = node;
+			node = node->left;
+		}
 		else
-			break;
+		{
+			parent = node;
+			node = node->right;
+		}
 	}
-	node = (tree ? (bst_t *)temp : NULL);
-	if (!node)
-		return (NULL);
-	delete_node(&root, &node);
+
 	return (root);
 }
